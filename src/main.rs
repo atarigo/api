@@ -1,12 +1,24 @@
+mod common;
 mod role;
 mod user;
 
+use crate::common::database::create_sqlite_pool;
 use crate::role::view::router as role_router;
 use crate::user::view::router as user_router;
 use actix_web::{web, App, HttpServer};
 
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    let pool = match create_sqlite_pool().await {
+        Ok(pool) => pool,
+        Err(e) => {
+            eprintln!("{:?}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("{:?}", pool);
+
     HttpServer::new(|| {
         App::new()
             // .wrap(middleware::Logger::default())

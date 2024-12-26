@@ -1,21 +1,30 @@
-use anyhow::Result;
+use crate::role::model::create_role_table;
+use crate::user::model::create_user_table;
 use sqlx::sqlite::SqlitePool;
+use sqlx::Error as SqlxError;
 
-pub async fn create_sqlite_pool() -> Result<SqlitePool> {
-    let _pool = SqlitePool::connect("sqlite::memory:").await?;
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum DatabaseError {
+    ConnectionError(SqlxError),
+    MigrationError(SqlxError),
+}
 
-    sqlx::query(
-        r#"
-            CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            "#,
-    )
-    .execute(&_pool)
-    .await?;
+pub async fn create_sqlite_pool() -> Result<SqlitePool, DatabaseError> {
+    let pool = SqlitePool::connect("sqlite::memory:")
+        .await
+        .map_err(DatabaseError::ConnectionError)?;
 
-    Ok(_pool)
+    migrate(&pool)
+        .await
+        .map_err(DatabaseError::MigrationError)?;
+
+    Ok(pool)
+}
+
+pub async fn migrate(pool: &SqlitePool) -> Result<(), SqlxError> {
+    create_user_table(pool).await?;
+    create_role_table(pool).await?;
+
+    Ok(())
 }
