@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Error as SqlxError, SqlitePool};
 use std::i64;
 
-pub async fn create_user_table(pool: &SqlitePool) -> Result<(), SqlxError> {
+pub async fn create_table(pool: &SqlitePool) -> Result<(), SqlxError> {
     sqlx::query(
         r#"
             CREATE TABLE IF NOT EXISTS users (

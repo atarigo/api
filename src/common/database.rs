@@ -1,5 +1,5 @@
-use crate::role::model::create_role_table;
-use crate::user::model::create_user_table;
+use crate::role;
+use crate::user;
 use sqlx::sqlite::SqlitePool;
 use sqlx::Error as SqlxError;
 
@@ -23,8 +23,8 @@ pub async fn create_sqlite_pool() -> Result<SqlitePool, DatabaseError> {
 }
 
 pub async fn migrate(pool: &SqlitePool) -> Result<(), SqlxError> {
-    create_user_table(pool).await?;
-    create_role_table(pool).await?;
+    user::create_table(pool).await?;
+    role::create_table(pool).await?;
 
     Ok(())
 }
