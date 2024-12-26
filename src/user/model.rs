@@ -29,8 +29,8 @@ pub struct CreateUser {
 pub async fn create_user(pool: &SqlitePool, user: &CreateUser) -> Result<String> {
     sqlx::query(
         r#"
-        INSERT INTO users (id, email, username)
-        VALUES (?, ?, ?)
+            INSERT INTO users (id, email, username)
+            VALUES (?, ?, ?)
         "#,
     )
     .bind(&user.id)
@@ -54,17 +54,17 @@ pub async fn read_user(pool: &SqlitePool, id: Option<&str>) -> Result<Vec<ReadUs
     let query = match id {
         Some(id) => sqlx::query_as::<_, ReadUser>(
             r#"
-                    SELECT id, email, username, created_at
-                    FROM users
-                    WHERE id = ?
-                "#,
+                SELECT id, email, username, created_at
+                FROM users
+                WHERE id = ?
+            "#,
         )
         .bind(id),
         None => sqlx::query_as::<_, ReadUser>(
             r#"
                 SELECT id, email, username, created_at
                 FROM users
-                "#,
+            "#,
         ),
     };
 
