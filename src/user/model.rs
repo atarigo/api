@@ -1,15 +1,14 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, SqlitePool};
-use std::i64;
+use sqlx::{Error as SqlxError, FromRow, SqlitePool};
 
 pub async fn create_table(pool: &SqlitePool) -> Result<(), SqlxError> {
     sqlx::query(
         r#"
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT PRIMARY KEY,
                 email TEXT NOT NULL UNIQUE,
-                username TEXT NOT NULL UNIQUE,
+                username TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         "#,
@@ -21,37 +20,117 @@ pub async fn create_table(pool: &SqlitePool) -> Result<(), SqlxError> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct User {
-    pub id: Option<i64>,
-    pub username: String,
+pub struct CreateUser {
+    pub id: String,
     pub email: String,
+    pub username: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct NewUser {
-    pub username: String,
-    pub email: String,
-}
-
-/*
-pub async fn create_user(pool: &SqlitePool, user: &User) -> Result<i64> {
-    let result = sqlx::query(
+pub async fn create_user(pool: &SqlitePool, user: &CreateUser) -> Result<String> {
+    sqlx::query(
         r#"
-        INSERT INTO users (username, email)
-        VALUES (?, ?)
+        INSERT INTO users (id, email, username)
+        VALUES (?, ?, ?)
         "#,
     )
-    .bind(&user.username)
+    .bind(&user.id)
     .bind(&user.email)
+    .bind(&user.username)
     .execute(pool)
     .await?;
 
-    Ok(result.last_insert_rowid())
+    Ok(user.id.clone())
 }
-*/
 
-// pub async fn read_user() {}
+#[derive(FromRow, Serialize)]
+pub struct ReadUser {
+    pub id: String,
+    pub email: String,
+    pub username: String,
+    pub created_at: i64,
+}
 
-// update user
+pub async fn read_user(pool: &SqlitePool, id: Option<&str>) -> Result<Vec<ReadUser>> {
+    let query = match id {
+        Some(id) => sqlx::query_as::<_, ReadUser>(
+            r#"
+                    SELECT id, email, username, created_at
+                    FROM users
+                    WHERE id = ?
+                "#,
+        )
+        .bind(id),
+        None => sqlx::query_as::<_, ReadUser>(
+            r#"
+                SELECT id, email, username, created_at
+                FROM users
+                "#,
+        ),
+    };
 
-// delete user
+    let users = query.fetch_all(pool).await?;
+    Ok(users)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateUser {
+    pub email: Option<String>,
+    pub username: Option<String>,
+}
+
+pub async fn update_user(pool: &SqlitePool, id: &str, user: &UpdateUser) -> Result<()> {
+    if user.email.is_none() && user.username.is_none() {
+        return Err(anyhow::anyhow!(
+            "At least one field must be provided for update"
+        ));
+    }
+
+    let mut query = String::from("UPDATE users SET");
+    let mut params = Vec::new();
+    let mut first = true;
+
+    if let Some(email) = &user.email {
+        query.push_str(" email = ?");
+        params.push(email);
+        first = false;
+    }
+
+    if let Some(username) = &user.username {
+        if !first {
+            query.push_str(",");
+        }
+        query.push_str(" username = ?");
+        params.push(username);
+    }
+
+    query.push_str(" WHERE id = ?");
+
+    let mut db_query = sqlx::query(&query);
+
+    // Bind all parameters in order
+    for param in &params {
+        db_query = db_query.bind(param);
+    }
+    db_query = db_query.bind(id);
+
+    db_query.execute(pool).await?;
+
+    Ok(())
+}
+
+pub async fn delete_user(pool: &SqlitePool, id: &str) -> Result<()> {
+    let result = sqlx::query(
+        r#"
+            DELETE FROM users
+            WHERE id = ?
+        "#,
+    )
+    .bind(id)
+    .execute(pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(anyhow::anyhow!("User not found"));
+    }
+    Ok(())
+}

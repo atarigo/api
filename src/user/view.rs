@@ -1,7 +1,7 @@
-// use crate::user::model::NewUser;
-// use crate::user::service::add_user;
+use crate::user::service::debug;
 use actix_web::{get, post, put, web, HttpResponse, Responder};
-use serde::Serialize;
+use sqlx::SqlitePool;
+use std::sync::Arc;
 
 pub fn router(cfg: &mut web::ServiceConfig) -> () {
     cfg.service(
@@ -12,16 +12,11 @@ pub fn router(cfg: &mut web::ServiceConfig) -> () {
     );
 }
 
-#[derive(Serialize)]
-struct CreatedUser {
-    id: i32,
-}
-
 #[post("/")]
-async fn create_user() -> impl Responder {
-    let user = CreatedUser { id: 30 };
-
-    HttpResponse::Ok().json(user)
+async fn create_user(pool: web::Data<Arc<SqlitePool>>) -> impl Responder {
+    // fixme: debug
+    let _ = debug(&pool).await;
+    HttpResponse::Ok().json("ok")
 }
 
 #[get("/")]
