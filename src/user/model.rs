@@ -85,35 +85,25 @@ pub async fn update_user(pool: &SqlitePool, id: &str, user: &UpdateUser) -> Resu
         ));
     }
 
-    let mut query = String::from("UPDATE users SET");
-    let mut params = Vec::new();
-    let mut first = true;
+    let mut fields = Vec::new();
+    let mut values = Vec::new();
 
-    if let Some(email) = &user.email {
-        query.push_str(" email = ?");
-        params.push(email);
-        first = false;
+    if user.email.is_some() {
+        fields.push("email = ?");
+        values.push(user.email.as_ref().unwrap().as_str());
     }
 
-    if let Some(username) = &user.username {
-        if !first {
-            query.push_str(",");
-        }
-        query.push_str(" username = ?");
-        params.push(username);
+    if user.username.is_some() {
+        fields.push("username = ?");
+        values.push(user.username.as_ref().unwrap().as_str());
     }
 
-    query.push_str(" WHERE id = ?");
-
+    let query = format!("UPDATE users SET {} WHERE id = ?", fields.join(", "));
     let mut db_query = sqlx::query(&query);
-
-    // Bind all parameters in order
-    for param in &params {
-        db_query = db_query.bind(param);
+    for value in values {
+        db_query = db_query.bind(value)
     }
-    db_query = db_query.bind(id);
-
-    db_query.execute(pool).await?;
+    db_query.bind(id).execute(pool).await?;
 
     Ok(())
 }
