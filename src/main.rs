@@ -1,7 +1,5 @@
-mod role;
 mod user;
 
-use crate::role::view::router as role_router;
 use crate::user::view::router as user_router;
 use actix_web::{web, App, HttpServer};
 use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
@@ -45,11 +43,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             // .wrap(middleware::Logger::default())
-            .service(
-                web::scope("/api")
-                    .configure(user_router)
-                    .configure(role_router),
-            )
+            .service(web::scope("/api").configure(user_router))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
