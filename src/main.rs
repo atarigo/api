@@ -3,13 +3,16 @@ mod user;
 use crate::user::controller;
 use crate::user::repository::UserRepository;
 use crate::user::service::UserService;
-use actix_web::{web, App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer};
+use env_logger::Env;
 use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
 
 const DB_URL: &str = "sqlite://sqlite.db";
 
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
+
     // Create Sqlite Database
     if !Sqlite::database_exists(DB_URL).await.unwrap_or(false) {
         println!("Creating database {}", DB_URL);
@@ -46,8 +49,8 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(middleware::Logger::default())
             .app_data(service.clone())
-            // .wrap(middleware::Logger::default())
             .service(
                 web::scope("/api")
                     .route("/user", web::get().to(controller::list_users))
