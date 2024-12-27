@@ -2,6 +2,7 @@ use crate::user::model::{CreateUserDto, User};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub struct UserRepository {
     pool: SqlitePool,
 }

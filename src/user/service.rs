@@ -1,46 +1,33 @@
-use crate::user::model;
+use crate::user::model::CreateUserDto;
+use crate::user::model::User;
+use crate::user::repository::UserRepository;
 use anyhow::Result;
-use sqlx::SqlitePool;
+use thiserror::Error;
 
-pub async fn debug(pool: &SqlitePool) -> Result<()> {
-    let user = model::CreateUser {
-        id: "foo".to_string(),
-        email: "bar@example.com".to_string(),
-        username: "bar".to_string(),
-    };
-    model::create_user(pool, &user).await?;
+#[derive(Error, Debug)]
+pub enum UserError {
+    #[error("User not found")]
+    NotFound,
 
-    let users = model::read_user(pool, None).await?;
-    println!("users: [{}]", users.len());
-
-    let user = model::UpdateUser {
-        email: Some("bar2@example.com".to_string()),
-        username: Some("bat2".to_string()),
-    };
-    model::update_user(pool, "foo", &user).await?;
-
-    model::delete_user(pool, "foo").await?;
-
-    Ok(())
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] sqlx::Error),
 }
 
-/*
-async fn register_user(pool: &SqlitePool, session: String) -> Result<()> {
-    println!("__session in cookies: {}", session);
-    // decord JTW `session`
-    // get user information
-
-    // fixme: typing issue
-    let user = model::CreateUser {
-        id: "foo".to_string(),
-        email: "bar@example.com".to_string(),
-        username: "bar".to_string(),
-    };
-    model::create_user(pool, &user).await?;
-    Ok(())
+#[derive(Clone)]
+pub struct UserService {
+    repository: UserRepository,
 }
-*/
 
-// fn login_user(pool: &SqlitePool, user) {}
+impl UserService {
+    pub fn new(repository: UserRepository) -> Self {
+        Self { repository }
+    }
 
-// fn logout_user() {}
+    pub async fn create_user(&self, user: CreateUserDto) -> Result<User, UserError> {
+        self.repository.create(user).await.map_err(UserError::from)
+    }
+
+    pub async fn list_users(&self) -> Result<Vec<User>, UserError> {
+        self.repository.list().await.map_err(UserError::from)
+    }
+}

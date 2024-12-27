@@ -14,3 +14,4 @@ tokio = { version = "1.37", features = ["full"] }
 dirs = "5.0"
 uuid = { version = "1.4", features = ["v4"] }
 anyhow = "1.0"
+thiserror = "2.0.9"
