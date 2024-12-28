@@ -1,4 +1,5 @@
 use sqlx::{migrate::MigrateDatabase, Pool, Sqlite, SqlitePool};
+use tracing::{error, info};
 
 pub struct Database {
     pool: Pool<Sqlite>,
@@ -9,8 +10,10 @@ impl Database {
         Self::create_database_if_not_exists(database_url).await?;
 
         let pool = SqlitePool::connect(database_url).await?;
+        info!("Connection to database successful");
 
         Self::run_migrations(&pool).await?;
+        info!("Migrate successfully");
 
         Ok(Self { pool })
     }
@@ -24,11 +27,20 @@ impl Database {
             Ok(exists) => match exists {
                 true => Ok(()),
                 false => match Sqlite::create_database(database_url).await {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e),
+                    Ok(_) => {
+                        info!("create database success");
+                        Ok(())
+                    }
+                    Err(e) => {
+                        error!("failed to create database, {}", database_url);
+                        Err(e)
+                    }
                 },
             },
-            Err(e) => Err(e),
+            Err(e) => {
+                error!("failed to check database status, {}", e.to_string());
+                Err(e)
+            }
         }
     }
 
