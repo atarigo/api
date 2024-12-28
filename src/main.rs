@@ -54,11 +54,11 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api")
                     .route("/user", web::get().to(controller::list_users))
                     .route("/user", web::post().to(controller::register))
-                    .route("/user", web::put().to(controller::update_profile)),
+                    .route("/user", web::put().to(controller::update_profile))
+                    .route("/user", web::delete().to(controller::delete_account)),
             )
     })
     .bind(settings.server_addr())?
     .run()
     .await
 }
-
