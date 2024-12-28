@@ -50,7 +50,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
-            .app_data(service.clone())
+            .app_data(web::Data::new(service.clone()))
             .service(
                 web::scope("/api")
                     .route("/user", web::get().to(controller::list_users))
