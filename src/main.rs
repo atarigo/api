@@ -7,6 +7,7 @@ use crate::settings::Settings;
 use crate::user::controller;
 use crate::user::repository::UserRepository;
 use crate::user::service::UserService;
+use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
 use tracing::{info, Level};
 use tracing_subscriber::EnvFilter;
@@ -39,8 +40,15 @@ async fn main() -> std::io::Result<()> {
     let service = UserService::new(repository);
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("https://atarigo.io")
+            .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE"])
+            .max_age(3600)
+            .supports_credentials();
+
         App::new()
             .wrap(middleware::Logger::default())
+            .wrap(cors)
             .app_data(web::Data::new(service.clone()))
             .service(
                 web::scope("/api")
@@ -53,3 +61,4 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
+
