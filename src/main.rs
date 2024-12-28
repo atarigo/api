@@ -1,5 +1,7 @@
+mod settings;
 mod user;
 
+use crate::settings::Settings;
 use crate::user::controller;
 use crate::user::repository::UserRepository;
 use crate::user::service::UserService;
@@ -7,16 +9,17 @@ use actix_web::{middleware, web, App, HttpServer};
 use env_logger::Env;
 use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
 
-const DB_URL: &str = "sqlite://sqlite.db";
-
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    let settings = Settings::new().expect("invalid settings");
+
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     // Create Sqlite Database
-    if !Sqlite::database_exists(DB_URL).await.unwrap_or(false) {
-        println!("Creating database {}", DB_URL);
-        match Sqlite::create_database(DB_URL).await {
+    let db_url = settings.db_addr();
+    if !Sqlite::database_exists(db_url).await.unwrap_or(false) {
+        println!("Creating database {}", db_url);
+        match Sqlite::create_database(db_url).await {
             Ok(_) => println!("Create db success"),
             Err(error) => panic!("error: {}", error),
         }
@@ -25,7 +28,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Connect to sqlite
-    let pool = SqlitePool::connect(DB_URL).await.unwrap();
+    let pool = SqlitePool::connect(settings.db_addr()).await.unwrap();
 
     // Create tables
     // ! todo: move this sections to migrations
@@ -58,7 +61,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/user", web::put().to(controller::update_profile)),
             )
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(settings.server_addr())?
     .run()
     .await
 }

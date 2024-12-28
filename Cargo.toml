@@ -7,7 +7,9 @@ edition = "2021"
 # webservice
 actix-web = "4.9"
 actix-cors = "0.7"
+# env
 env_logger = "0.11.6"
+dotenv = "0.15.0"
 # serializer
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

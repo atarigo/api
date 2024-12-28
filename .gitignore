@@ -29,3 +29,8 @@ Cargo.lock
 # database
 sqlite.db
 sqlite.db*
+
+# envs
+.env
+.env.*
+!.env.example
