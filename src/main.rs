@@ -54,7 +54,8 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/api")
                     .route("/user", web::get().to(controller::list_users))
-                    .route("/user", web::post().to(controller::register)),
+                    .route("/user", web::post().to(controller::register))
+                    .route("/user", web::put().to(controller::update_profile)),
             )
     })
     .bind(("127.0.0.1", 8080))?

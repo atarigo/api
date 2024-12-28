@@ -2,6 +2,8 @@ use crate::user::model::{CreateUserDto, User};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
+use super::model::UpdateUserDto;
+
 #[derive(Clone)]
 pub struct UserRepository {
     pool: SqlitePool,
@@ -36,5 +38,35 @@ impl UserRepository {
 
         tx.commit().await?;
         Ok(user)
+    }
+
+    pub async fn update(&self, id: &str, user: UpdateUserDto) -> Result<User, sqlx::Error> {
+        let mut fields = Vec::new();
+        let mut values = Vec::new();
+
+        if user.email.is_some() {
+            fields.push("email = ?");
+            values.push(user.email.as_ref().unwrap().as_str());
+        }
+
+        if user.username.is_some() {
+            fields.push("username = ?");
+            values.push(user.username.as_ref().unwrap().as_str());
+        }
+
+        let statement = format!(
+            "UPDATE users SET {} WHERE id = ? RETRUNING *",
+            fields.join(", ")
+        );
+
+        let mut tx = self.pool.begin().await?;
+        let mut query = sqlx::query_as::<_, User>(&statement);
+        for value in values {
+            query = query.bind(value)
+        }
+        let updated_user = query.bind(id).fetch_one(&mut *tx).await?;
+
+        tx.commit().await?;
+        Ok(updated_user)
     }
 }

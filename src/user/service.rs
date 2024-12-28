@@ -1,4 +1,5 @@
 use crate::user::model::CreateUserDto;
+use crate::user::model::UpdateUserDto;
 use crate::user::model::User;
 use crate::user::repository::UserRepository;
 use anyhow::Result;
@@ -29,5 +30,12 @@ impl UserService {
 
     pub async fn list_users(&self) -> Result<Vec<User>, UserError> {
         self.repository.list().await.map_err(UserError::from)
+    }
+
+    pub async fn update_user(&self, id: &str, user: UpdateUserDto) -> Result<User, UserError> {
+        self.repository
+            .update(id, user)
+            .await
+            .map_err(UserError::from)
     }
 }
